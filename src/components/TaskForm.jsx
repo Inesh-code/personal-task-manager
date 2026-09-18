@@ -1,65 +1,114 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { validateTask, todayString } from '../utils/taskHelpers.js'
 
-// TaskForm: collects the title and priority, validates, then sends it up via onAddTask
-function TaskForm({ onAddTask }) {
-  const [formData, setFormData] = useState({ title: '', priority: 'Medium' })
-  const [error, setError] = useState('')
+const emptyForm = { title: '', priority: 'Medium', date: '', time: '' }
+
+// TaskForm: collects title, priority, date and time, validates, then sends it up via onAddTask
+function TaskForm({ onAddTask, onViewTasks }) {
+  const [formData, setFormData] = useState(emptyForm)
+  const [errors, setErrors] = useState({})
+  const [successMessage, setSuccessMessage] = useState('')
+
+  // useEffect: hide the success message after 4 seconds
+  useEffect(() => {
+    if (!successMessage) return
+    const timer = setTimeout(() => setSuccessMessage(''), 4000)
+    return () => clearTimeout(timer)
+  }, [successMessage])
 
   function handleChange(e) {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
-    if (error) setError('') // clear the error once the user starts typing
+    // clear the error for this field once the user changes it
+    if (errors[name]) setErrors({ ...errors, [name]: '' })
   }
 
   function handleSubmit(e) {
     e.preventDefault()
-    const title = formData.title.trim()
+    const newErrors = validateTask(formData)
 
-    // Validation
-    if (title === '') {
-      setError('Please enter a task title.')
-      return
-    }
-    if (title.length < 3) {
-      setError('Task title must be at least 3 characters long.')
-      return
-    }
-    if (title.length > 60) {
-      setError('Task title can be at most 60 characters long.')
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
       return
     }
 
-    onAddTask(title, formData.priority)
-    setFormData({ title: '', priority: 'Medium' }) // reset form
+    onAddTask({ ...formData, title: formData.title.trim() })
+    setSuccessMessage(`"${formData.title.trim()}" was added to your tasks.`)
+    setFormData(emptyForm) // reset form
+    setErrors({})
   }
 
   return (
     <form className="task-form" onSubmit={handleSubmit} noValidate>
-      <label htmlFor="title">Task title *</label>
-      <input
-        id="title"
-        name="title"
-        type="text"
-        placeholder="e.g. Finish React assignment"
-        value={formData.title}
-        onChange={handleChange}
-        aria-invalid={error ? 'true' : 'false'}
-        aria-describedby={error ? 'title-error' : undefined}
-      />
-      {error && (
-        <p id="title-error" className="error" role="alert">
-          {error}
-        </p>
-      )}
+      <div className="field">
+        <label htmlFor="title">Task name *</label>
+        <input
+          id="title"
+          name="title"
+          type="text"
+          placeholder="e.g. Finish React assignment"
+          value={formData.title}
+          onChange={handleChange}
+          aria-invalid={errors.title ? 'true' : 'false'}
+        />
+        {errors.title && <p className="error" role="alert">{errors.title}</p>}
+      </div>
 
-      <label htmlFor="priority">Priority</label>
-      <select id="priority" name="priority" value={formData.priority} onChange={handleChange}>
-        <option value="Low">Low</option>
-        <option value="Medium">Medium</option>
-        <option value="High">High</option>
-      </select>
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="date">Due date *</label>
+          <input
+            id="date"
+            name="date"
+            type="date"
+            min={todayString()}
+            value={formData.date}
+            onChange={handleChange}
+            aria-invalid={errors.date ? 'true' : 'false'}
+          />
+          {errors.date && <p className="error" role="alert">{errors.date}</p>}
+        </div>
+
+        <div className="field">
+          <label htmlFor="time">Due time *</label>
+          <input
+            id="time"
+            name="time"
+            type="time"
+            value={formData.time}
+            onChange={handleChange}
+            aria-invalid={errors.time ? 'true' : 'false'}
+          />
+          {errors.time && <p className="error" role="alert">{errors.time}</p>}
+        </div>
+      </div>
+
+      <fieldset className="field priority-picker">
+        <legend>Priority *</legend>
+        {['Low', 'Medium', 'High'].map((level) => (
+          <label key={level} className={`priority-option option-${level.toLowerCase()}`}>
+            <input
+              type="radio"
+              name="priority"
+              value={level}
+              checked={formData.priority === level}
+              onChange={handleChange}
+            />
+            <span>{level}</span>
+          </label>
+        ))}
+      </fieldset>
 
       <button type="submit" className="btn-primary">Add task</button>
+
+      {successMessage && (
+        <div className="success" role="status">
+          <span>{successMessage}</span>
+          <button type="button" className="btn-link" onClick={onViewTasks}>
+            View all tasks
+          </button>
+        </div>
+      )}
     </form>
   )
 }
