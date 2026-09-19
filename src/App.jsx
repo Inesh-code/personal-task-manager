@@ -7,7 +7,7 @@ import Footer from './components/Footer.jsx'
 
 // TODO: check these details before submitting
 const STUDENT_NAME = 'Inesh Fernando'
-const REG_NUMBER = 'ICT/2026/023'
+const REG_NUMBER = 'PSBUC/DIP/ICT/SL/26/LC/0005'
 
 // Load saved tasks from the browser (so tasks stay after a refresh)
 function loadSavedTasks() {
